@@ -206,41 +206,6 @@
             font-size: 12px;
             margin-top: 10px;
         }
-
-        .open-drive-btn {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            background: #4285F4;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 4px;
-            text-decoration: none;
-            font-size: 12px;
-            z-index: 10;
-            transition: background 0.2s;
-        }
-
-        .open-drive-btn:hover {
-            background: #357ae8;
-        }
-
-        .drive-link-button {
-            display: inline-block;
-            background: #4285F4;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 4px;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 600;
-            margin-top: 20px;
-            transition: background 0.2s;
-        }
-
-        .drive-link-button:hover {
-            background: #357ae8;
-        }
     </style>
 </head>
 <body>
@@ -285,12 +250,8 @@
             status.textContent = '⏳ Loading index...';
 
             try {
-                // Try to load converted JSONL first
-                let response = await fetch('screenshots_index_converted.jsonl');
-                if (!response.ok) {
-                    throw new Error('Converted file not found, trying original...');
-                }
-                let text = await response.text();
+                const response = await fetch('screenshots_index.jsonl');
+                const text = await response.text();
 
                 // Parse JSONL (one JSON object per line)
                 allData = text
@@ -301,28 +262,8 @@
                 status.textContent = `✓ Loaded ${allData.length} screenshots`;
                 console.log(`Loaded ${allData.length} screenshots`);
             } catch (error) {
-                console.log('Trying fallback...', error);
-                
-                // Fallback: try original JSONL and mark all as Google Drive
-                try {
-                    let response = await fetch('screenshots_index.jsonl');
-                    let text = await response.text();
-                    
-                    allData = text
-                        .split('\n')
-                        .filter(line => line.trim())
-                        .map(line => {
-                            let entry = JSON.parse(line);
-                            entry.filepath = 'IN_GOOGLE_DRIVE';  // Mark all as Drive
-                            return entry;
-                        });
-                    
-                    status.textContent = `✓ Loaded ${allData.length} screenshots (Drive mode)`;
-                    console.log(`Fallback: Loaded ${allData.length} screenshots`);
-                } catch (fallbackError) {
-                    status.textContent = '✗ Error loading index';
-                    console.error('Error loading index:', fallbackError);
-                }
+                status.textContent = '✗ Error loading index';
+                console.error('Error loading index:', error);
             }
         }
 
@@ -345,8 +286,9 @@
             // Display results
             const resultsList = document.getElementById('resultsList');
             resultsList.innerHTML = results.map((item, index) => `
-                <div class="result-item" onclick="selectResult('${item.filepath.replace(/\\/g, '\\\\')}', ${index})">
-                    ${item.filename}
+                <div class="result-item" onclick="selectResult('${item.filepath.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', ${index})">
+                    <div style="font-weight: 500;">${item.filename}</div>
+                    <div style="font-size: 11px; color: #666; margin-top: 2px;">${item.category || 'uncategorized'}</div>
                 </div>
             `).join('');
 
@@ -363,36 +305,21 @@
             currentFilepath = filepath;
             const imageContainer = document.getElementById('imageContainer');
 
-            // Check if filepath is a marker for Google Drive (or any local/invalid path)
-            if (filepath.includes('GOOGLE_DRIVE') || filepath.includes(':\\') || filepath.includes('C:') || !filepath.startsWith('http')) {
-                // Show Drive link directly
-                showDriveLink(filepath);
-            } else {
-                // Try to load image (for URLs)
-                const filename = filepath.split('\\').pop() || filepath.split('/').pop() || 'Image';
-                
-                imageContainer.innerHTML = `
-                    <img class="image-display" src="${filepath}" onclick="openModal('${filepath}')" onerror="showDriveLink('${filepath}')" />
-                    <div class="image-filename">${filename}</div>
-                    <a href="https://drive.google.com/drive/folders/1qOoMeowC4LAa8Cye_CwISeOXhoPNhyyp?usp=sharing" target="_blank" class="open-drive-btn">Open in Drive</a>
-                `;
-            }
+            // Load image from filepath
+            const filename = filepath.split('/').pop() || 'Image';
+            
+            imageContainer.innerHTML = `
+                <img class="image-display" src="${filepath}" onclick="openModal('${filepath}')" onerror="showLoadError()" />
+                <div class="image-filename">${filename}</div>
+            `;
         }
 
-        // Show Drive link (when image isn't available locally)
-        function showDriveLink(filepath) {
+        // Handle load error
+        function showLoadError() {
             const imageContainer = document.getElementById('imageContainer');
             imageContainer.innerHTML = `
                 <div class="placeholder">
-                    <p style="margin-bottom: 20px; font-weight: bold;">
-                        Image stored in Google Drive
-                    </p>
-                    <p style="margin-bottom: 20px; font-size: 14px; color: #666;">
-                        Click below to browse all screenshots:
-                    </p>
-                    <a href="https://drive.google.com/drive/folders/1qOoMeowC4LAa8Cye_CwISeOXhoPNhyyp?usp=sharing" target="_blank" class="drive-link-button">
-                        Open in Google Drive
-                    </a>
+                    <p>Failed to load image</p>
                 </div>
             `;
         }
