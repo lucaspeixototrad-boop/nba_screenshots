@@ -337,14 +337,14 @@
             });
 
             currentFilepath = filepath;
+            const imageContainer = document.getElementById('imageContainer');
 
-            // Check if filepath is a marker for Google Drive
-            if (filepath === 'IN_GOOGLE_DRIVE' || filepath.startsWith('C:') || filepath.startsWith('\\')) {
+            // Check if filepath is a marker for Google Drive (or any local/invalid path)
+            if (filepath.includes('GOOGLE_DRIVE') || filepath.includes(':\\') || filepath.includes('C:') || !filepath.startsWith('http')) {
                 // Show Drive link directly
                 showDriveLink(filepath);
             } else {
                 // Try to load image (for URLs)
-                const imageContainer = document.getElementById('imageContainer');
                 const filename = filepath.split('\\').pop() || filepath.split('/').pop() || 'Image';
                 
                 imageContainer.innerHTML = `
