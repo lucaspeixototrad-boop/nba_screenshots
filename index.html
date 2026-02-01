@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screenshot Search</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        .left-panel {
+            width: 320px;
+            background: white;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .right-panel {
+            flex: 1;
+            background: #f9f9f9;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        h1 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        button {
+            padding: 10px 16px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover {
+            background: #1976D2;
+        }
+
+        .results-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .results-list {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+        }
+
+        .result-item {
+            padding: 12px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            font-size: 13px;
+            color: #333;
+            transition: background 0.2s;
+            word-break: break-word;
+        }
+
+        .result-item:hover {
+            background: #f0f7ff;
+        }
+
+        .result-item.active {
+            background: #2196F3;
+            color: white;
+        }
+
+        .image-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .image-display {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            cursor: zoom-in;
+        }
+
+        .image-filename {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        .placeholder {
+            color: #999;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            max-width: 90vw;
+            max-height: 90vh;
+            position: relative;
+        }
+
+        .modal-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 32px;
+            color: white;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        .close-modal:hover {
+            color: #ccc;
+        }
+
+        .status {
+            color: #666;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        .loading {
+            color: #2196F3;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Left Panel -->
+        <div class="left-panel">
+            <h1>🔍 Screenshot Search</h1>
+            
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search..." />
+                <button onclick="performSearch()">Search</button>
+            </div>
+
+            <div class="results-label" id="resultsLabel">Results: 0</div>
+            <div class="results-list" id="resultsList"></div>
+            <div class="status" id="status"></div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel">
+            <div class="image-container" id="imageContainer">
+                <div class="placeholder">Select a screenshot to view</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for enlarged view -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal()">&times;</button>
+            <img class="modal-image" id="modalImage" />
+        </div>
+    </div>
+
+    <script>
+        let allData = [];
+        let currentFilepath = null;
+
+        // Load JSONL on page load
+        async function loadIndex() {
+            const status = document.getElementById('status');
+            status.textContent = '⏳ Loading index...';
+
+            try {
+                const response = await fetch('screenshots_index.jsonl');
+                const text = await response.text();
+
+                // Parse JSONL (one JSON object per line)
+                allData = text
+                    .split('\n')
+                    .filter(line => line.trim())
+                    .map(line => JSON.parse(line));
+
+                status.textContent = `✓ Loaded ${allData.length} screenshots`;
+                console.log(`Loaded ${allData.length} screenshots`);
+            } catch (error) {
+                status.textContent = '✗ Error loading index';
+                console.error('Error loading index:', error);
+            }
+        }
+
+        // Perform search
+        function performSearch() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+
+            if (!query.trim()) {
+                document.getElementById('resultsList').innerHTML = '';
+                document.getElementById('resultsLabel').textContent = 'Results: 0';
+                return;
+            }
+
+            // Filter results
+            const results = allData.filter(item =>
+                item.text.toLowerCase().includes(query) ||
+                item.filename.toLowerCase().includes(query)
+            );
+
+            // Display results
+            const resultsList = document.getElementById('resultsList');
+            resultsList.innerHTML = results.map((item, index) => `
+                <div class="result-item" onclick="selectResult('${item.filepath.replace(/\\/g, '\\\\')}', ${index})">
+                    ${item.filename}
+                </div>
+            `).join('');
+
+            document.getElementById('resultsLabel').textContent = `Results: ${results.length}`;
+        }
+
+        // Select and display a result
+        function selectResult(filepath, index) {
+            // Highlight the selected item
+            document.querySelectorAll('.result-item').forEach((el, i) => {
+                el.classList.toggle('active', i === index);
+            });
+
+            // The filepath is stored, but we need to show the image
+            // Since we're client-side, we can use the filepath directly
+            currentFilepath = filepath;
+
+            // Get the filename for display
+            const filename = filepath.split('\\').pop() || filepath.split('/').pop();
+
+            // Load image
+            const imageContainer = document.getElementById('imageContainer');
+            imageContainer.innerHTML = `
+                <img class="image-display" src="${filepath}" onclick="openModal('${filepath}')" />
+                <div class="image-filename">${filename}</div>
+            `;
+        }
+
+        // Open modal for enlarged view
+        function openModal(filepath) {
+            const modal = document.getElementById('modal');
+            const modalImage = document.getElementById('modalImage');
+            modalImage.src = filepath;
+            modal.classList.add('active');
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('modal').classList.remove('active');
+        }
+
+        // Close modal on ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        // Allow Enter key to search
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') performSearch();
+        });
+
+        // Load index when page loads
+        window.addEventListener('load', loadIndex);
+    </script>
+</body>
+</html>
