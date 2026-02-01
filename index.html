@@ -285,7 +285,7 @@
             status.textContent = '⏳ Loading index...';
 
             try {
-                const response = await fetch('screenshots_index.jsonl');
+                const response = await fetch('screenshots_index_converted.jsonl');
                 const text = await response.text();
 
                 // Parse JSONL (one JSON object per line)
@@ -336,30 +336,35 @@
                 el.classList.toggle('active', i === index);
             });
 
-            // The filepath is stored, but we need to show the image
-            // Since we're client-side, we can use the filepath directly
             currentFilepath = filepath;
 
-            // Get the filename for display
-            const filename = filepath.split('\\').pop() || filepath.split('/').pop();
-
-            // Load image
-            const imageContainer = document.getElementById('imageContainer');
-            imageContainer.innerHTML = `
-                <img class="image-display" src="${filepath}" onclick="openModal('${filepath}')" onerror="showDriveLink('${filepath}')" />
-                <div class="image-filename">${filename}</div>
-                <a href="https://drive.google.com/drive/folders/1qOoMeowC4LAa8Cye_CwISeOXhoPNhyyp?usp=sharing" target="_blank" class="open-drive-btn">Open in Drive</a>
-            `;
+            // Check if filepath is a marker for Google Drive
+            if (filepath === 'IN_GOOGLE_DRIVE' || filepath.startsWith('C:') || filepath.startsWith('\\')) {
+                // Show Drive link directly
+                showDriveLink(filepath);
+            } else {
+                // Try to load image (for URLs)
+                const imageContainer = document.getElementById('imageContainer');
+                const filename = filepath.split('\\').pop() || filepath.split('/').pop() || 'Image';
+                
+                imageContainer.innerHTML = `
+                    <img class="image-display" src="${filepath}" onclick="openModal('${filepath}')" onerror="showDriveLink('${filepath}')" />
+                    <div class="image-filename">${filename}</div>
+                    <a href="https://drive.google.com/drive/folders/1qOoMeowC4LAa8Cye_CwISeOXhoPNhyyp?usp=sharing" target="_blank" class="open-drive-btn">Open in Drive</a>
+                `;
+            }
         }
 
-        // Fallback if image fails to load
+        // Show Drive link (when image isn't available locally)
         function showDriveLink(filepath) {
             const imageContainer = document.getElementById('imageContainer');
             imageContainer.innerHTML = `
                 <div class="placeholder">
-                    <p>Image not directly accessible from GitHub Pages.</p>
-                    <p style="margin-top: 20px;">
-                        <strong>Click below to view in Google Drive:</strong>
+                    <p style="margin-bottom: 20px; font-weight: bold;">
+                        Image stored in Google Drive
+                    </p>
+                    <p style="margin-bottom: 20px; font-size: 14px; color: #666;">
+                        Click below to browse all screenshots:
                     </p>
                     <a href="https://drive.google.com/drive/folders/1qOoMeowC4LAa8Cye_CwISeOXhoPNhyyp?usp=sharing" target="_blank" class="drive-link-button">
                         Open in Google Drive
