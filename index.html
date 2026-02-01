@@ -206,6 +206,41 @@
             font-size: 12px;
             margin-top: 10px;
         }
+
+        .open-drive-btn {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: #4285F4;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 12px;
+            z-index: 10;
+            transition: background 0.2s;
+        }
+
+        .open-drive-btn:hover {
+            background: #357ae8;
+        }
+
+        .drive-link-button {
+            display: inline-block;
+            background: #4285F4;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 20px;
+            transition: background 0.2s;
+        }
+
+        .drive-link-button:hover {
+            background: #357ae8;
+        }
     </style>
 </head>
 <body>
@@ -311,8 +346,25 @@
             // Load image
             const imageContainer = document.getElementById('imageContainer');
             imageContainer.innerHTML = `
-                <img class="image-display" src="${filepath}" onclick="openModal('${filepath}')" />
+                <img class="image-display" src="${filepath}" onclick="openModal('${filepath}')" onerror="showDriveLink('${filepath}')" />
                 <div class="image-filename">${filename}</div>
+                <a href="https://drive.google.com/drive/folders/1qOoMeowC4LAa8Cye_CwISeOXhoPNhyyp?usp=sharing" target="_blank" class="open-drive-btn">Open in Drive</a>
+            `;
+        }
+
+        // Fallback if image fails to load
+        function showDriveLink(filepath) {
+            const imageContainer = document.getElementById('imageContainer');
+            imageContainer.innerHTML = `
+                <div class="placeholder">
+                    <p>Image not directly accessible from GitHub Pages.</p>
+                    <p style="margin-top: 20px;">
+                        <strong>Click below to view in Google Drive:</strong>
+                    </p>
+                    <a href="https://drive.google.com/drive/folders/1qOoMeowC4LAa8Cye_CwISeOXhoPNhyyp?usp=sharing" target="_blank" class="drive-link-button">
+                        Open in Google Drive
+                    </a>
+                </div>
             `;
         }
 
