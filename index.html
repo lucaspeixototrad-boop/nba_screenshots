@@ -285,8 +285,12 @@
             status.textContent = '⏳ Loading index...';
 
             try {
-                const response = await fetch('screenshots_index_converted.jsonl');
-                const text = await response.text();
+                // Try to load converted JSONL first
+                let response = await fetch('screenshots_index_converted.jsonl');
+                if (!response.ok) {
+                    throw new Error('Converted file not found, trying original...');
+                }
+                let text = await response.text();
 
                 // Parse JSONL (one JSON object per line)
                 allData = text
@@ -297,8 +301,28 @@
                 status.textContent = `✓ Loaded ${allData.length} screenshots`;
                 console.log(`Loaded ${allData.length} screenshots`);
             } catch (error) {
-                status.textContent = '✗ Error loading index';
-                console.error('Error loading index:', error);
+                console.log('Trying fallback...', error);
+                
+                // Fallback: try original JSONL and mark all as Google Drive
+                try {
+                    let response = await fetch('screenshots_index.jsonl');
+                    let text = await response.text();
+                    
+                    allData = text
+                        .split('\n')
+                        .filter(line => line.trim())
+                        .map(line => {
+                            let entry = JSON.parse(line);
+                            entry.filepath = 'IN_GOOGLE_DRIVE';  // Mark all as Drive
+                            return entry;
+                        });
+                    
+                    status.textContent = `✓ Loaded ${allData.length} screenshots (Drive mode)`;
+                    console.log(`Fallback: Loaded ${allData.length} screenshots`);
+                } catch (fallbackError) {
+                    status.textContent = '✗ Error loading index';
+                    console.error('Error loading index:', fallbackError);
+                }
             }
         }
 
