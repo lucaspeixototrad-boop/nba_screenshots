@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Screenshot Search</title>
+    <title>Busca em screenshots</title>
     <style>
         * {
             margin: 0;
@@ -161,6 +161,7 @@
             background-color: rgba(0,0,0,0.9);
             justify-content: center;
             align-items: center;
+            padding: 20px;
         }
 
         .modal.active {
@@ -171,6 +172,16 @@
             max-width: 90vw;
             max-height: 90vh;
             position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-image-wrapper {
+            flex: 1;
+            overflow: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .modal-image {
@@ -212,14 +223,15 @@
     <div class="container">
         <!-- Left Panel -->
         <div class="left-panel">
-            <h1>🔍 Screenshot Search</h1>
+            <h1>🔍 Busca em screenshots</h1>
+            <div style="font-size: 12px; color: #999; margin-bottom: 15px;">Última atualização: 01/02/2026 17h</div>
             
             <div class="search-box">
-                <input type="text" id="searchInput" placeholder="Search..." />
-                <button onclick="performSearch()">Search</button>
+                <input type="text" id="searchInput" placeholder="Pesquisar..." />
+                <button onclick="performSearch()">Buscar</button>
             </div>
 
-            <div class="results-label" id="resultsLabel">Results: 0</div>
+            <div class="results-label" id="resultsLabel">Resultados: 0</div>
             <div class="results-list" id="resultsList"></div>
             <div class="status" id="status"></div>
         </div>
@@ -227,7 +239,7 @@
         <!-- Right Panel -->
         <div class="right-panel">
             <div class="image-container" id="imageContainer">
-                <div class="placeholder">Select a screenshot to view</div>
+                <div class="placeholder">Selecione um screenshot para visualizar</div>
             </div>
         </div>
     </div>
@@ -236,7 +248,9 @@
     <div class="modal" id="modal">
         <div class="modal-content">
             <button class="close-modal" onclick="closeModal()">&times;</button>
-            <img class="modal-image" id="modalImage" />
+            <div class="modal-image-wrapper">
+                <img class="modal-image" id="modalImage" />
+            </div>
         </div>
     </div>
 
@@ -247,7 +261,7 @@
         // Load JSONL on page load
         async function loadIndex() {
             const status = document.getElementById('status');
-            status.textContent = '⏳ Loading index...';
+status.textContent = '⏳ Carregando índice...';
 
             try {
                 const response = await fetch('screenshots_index.jsonl');
@@ -259,10 +273,10 @@
                     .filter(line => line.trim())
                     .map(line => JSON.parse(line));
 
-                status.textContent = `✓ Loaded ${allData.length} screenshots`;
+                status.textContent = `✓ ${allData.length} screenshots carregados`;
                 console.log(`Loaded ${allData.length} screenshots`);
             } catch (error) {
-                status.textContent = '✗ Error loading index';
+                status.textContent = '✗ Erro ao carregar índice';
                 console.error('Error loading index:', error);
             }
         }
@@ -273,7 +287,7 @@
 
             if (!query.trim()) {
                 document.getElementById('resultsList').innerHTML = '';
-                document.getElementById('resultsLabel').textContent = 'Results: 0';
+                document.getElementById('resultsLabel').textContent = 'Resultados: 0';
                 return;
             }
 
@@ -292,7 +306,7 @@
                 </div>
             `).join('');
 
-            document.getElementById('resultsLabel').textContent = `Results: ${results.length}`;
+            document.getElementById('resultsLabel').textContent = `Resultados: ${results.length}`;
         }
 
         // Select and display a result
@@ -319,7 +333,7 @@
             const imageContainer = document.getElementById('imageContainer');
             imageContainer.innerHTML = `
                 <div class="placeholder">
-                    <p>Failed to load image</p>
+                    <p>Erro ao carregar imagem</p>
                 </div>
             `;
         }
