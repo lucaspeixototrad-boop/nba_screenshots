@@ -217,6 +217,23 @@
             font-size: 12px;
             margin-top: 10px;
         }
+
+        .search-options {
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+
+        .search-options label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            color: #555;
+        }
+
+        .search-options input[type="checkbox"] {
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -229,6 +246,13 @@
             <div class="search-box">
                 <input type="text" id="searchInput" placeholder="Pesquisar..." />
                 <button onclick="performSearch()">Buscar</button>
+            </div>
+
+            <div class="search-options">
+                <label>
+                    <input type="checkbox" id="exactWordCheckbox" onchange="performSearch()" />
+                    Palavra exata
+                </label>
             </div>
 
             <div class="results-label" id="resultsLabel">Resultados: 0</div>
@@ -284,6 +308,7 @@ status.textContent = '⏳ Carregando índice...';
         // Perform search
         function performSearch() {
             const query = document.getElementById('searchInput').value.toLowerCase();
+            const exactWord = document.getElementById('exactWordCheckbox').checked;
 
             if (!query.trim()) {
                 document.getElementById('resultsList').innerHTML = '';
@@ -292,10 +317,19 @@ status.textContent = '⏳ Carregando índice...';
             }
 
             // Filter results
-            const results = allData.filter(item =>
-                item.text.toLowerCase().includes(query) ||
-                item.filename.toLowerCase().includes(query)
-            );
+            const results = allData.filter(item => {
+                const textLower = item.text.toLowerCase();
+                const filenameLower = item.filename.toLowerCase();
+                
+                if (exactWord) {
+                    // Use word boundary regex for exact word matching
+                    const wordRegex = new RegExp(`\\b${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+                    return wordRegex.test(item.text) || wordRegex.test(item.filename);
+                } else {
+                    // Simple substring matching
+                    return textLower.includes(query) || filenameLower.includes(query);
+                }
+            });
 
             // Display results
             const resultsList = document.getElementById('resultsList');
